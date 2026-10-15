@@ -5,6 +5,9 @@ import { Container } from "@/components/layout/Container";
 import { AccordionItem } from "@/components/ui/Accordion";
 import { Button } from "@/components/ui/Button";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { sanityFetch } from "@/lib/sanity/fetch";
+import { faqItemsQuery } from "@/lib/sanity/queries";
+import { FaqItem } from "@/lib/types";
 import { mockFaqs } from "@/lib/mock";
 import { groupBy } from "@/lib/utils";
 import { MessageCircleQuestion } from "lucide-react";
@@ -15,8 +18,13 @@ export const metadata: Metadata = {
     "Common questions about housing assistance, eligibility, community meals, and volunteer opportunities at Hawii House.",
 };
 
-export default function FaqPage() {
-  const faqs = mockFaqs;
+export default async function FaqPage() {
+  const sanityFaqs = await sanityFetch<FaqItem[]>({
+    query: faqItemsQuery,
+    tags: ["faqItem"],
+  });
+
+  const faqs = sanityFaqs && sanityFaqs.length > 0 ? sanityFaqs : mockFaqs;
   const groupedFaqs = groupBy(faqs, (f) => f.category || "General Inquiries");
 
   // Build FAQPage schema for JSON-LD

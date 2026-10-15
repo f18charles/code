@@ -1,17 +1,49 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Metadata } from "next";
 import { Hero } from "@/components/home/Hero";
 import { Highlights } from "@/components/home/Highlights";
 import { Section } from "@/components/ui/Section";
 import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/Button";
 import { PostCard } from "@/components/blog/PostCard";
+import { sanityFetch } from "@/lib/sanity/fetch";
+import { homePageQuery, postsQuery } from "@/lib/sanity/queries";
+import { HomePageData, Post } from "@/lib/types";
 import { mockHomePage, mockPosts, mockAlbums } from "@/lib/mock";
 
-export default function HomePage() {
-  const homeData = mockHomePage;
-  const latestPosts = mockPosts.slice(0, 3);
+export async function generateMetadata(): Promise<Metadata> {
+  const sanityHome = await sanityFetch<HomePageData>({
+    query: homePageQuery,
+    tags: ["homePage"],
+  });
+
+  const seo = sanityHome?.seo;
+
+  return {
+    title: seo?.title || "Hawii House | Safe Shelter, Warm Meals & Community Care",
+    description:
+      seo?.description ||
+      "Hawii House is a support NGO dedicated to providing safe refuge, guidance, and community support with warmth, dignity, and care.",
+  };
+}
+
+export default async function HomePage() {
+  const [sanityHome, sanityPosts] = await Promise.all([
+    sanityFetch<HomePageData>({
+      query: homePageQuery,
+      tags: ["homePage"],
+    }),
+    sanityFetch<Post[]>({
+      query: postsQuery,
+      tags: ["post"],
+    }),
+  ]);
+
+  const homeData = sanityHome || mockHomePage;
+  const posts = sanityPosts && sanityPosts.length > 0 ? sanityPosts : mockPosts;
+  const latestPosts = posts.slice(0, 3);
   const featuredAlbum = homeData.featuredAlbum || mockAlbums[0];
 
   return (
@@ -54,34 +86,36 @@ export default function HomePage() {
       </Section>
 
       {/* 4. Featured Album Strip */}
-      <Section
-        tone="default"
-        eyebrow="Community in Action"
-        title={featuredAlbum.title}
-        intro={featuredAlbum.description}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {featuredAlbum.images.slice(0, 3).map((photo, i) => (
-            <div
-              key={photo._key || i}
-              className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-border shadow-xs"
-            >
-              <Image
-                src={photo.url || ""}
-                alt={photo.alt}
-                fill
-                sizes="(max-width: 768px) 100vw, 33vw"
-                className="object-cover"
-              />
-            </div>
-          ))}
-        </div>
-        <div className="mt-10 text-center">
-          <Button href="/gallery" variant="secondary" size="md">
-            View All Photo Albums &rarr;
-          </Button>
-        </div>
-      </Section>
+      {featuredAlbum && (
+        <Section
+          tone="default"
+          eyebrow="Community in Action"
+          title={featuredAlbum.title}
+          intro={featuredAlbum.description}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {featuredAlbum.images?.slice(0, 3).map((photo, i) => (
+              <div
+                key={photo._key || i}
+                className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-border shadow-xs bg-background"
+              >
+                <Image
+                  src={photo.url || ""}
+                  alt={photo.alt}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="object-cover"
+                />
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 text-center">
+            <Button href="/gallery" variant="secondary" size="md">
+              View All Photo Albums &rarr;
+            </Button>
+          </div>
+        </Section>
+      )}
 
       {/* 5. Latest Posts */}
       <Section
@@ -115,7 +149,12 @@ export default function HomePage() {
             <Button href="/about#contact" variant="dark" size="lg">
               Get in Touch Today
             </Button>
-            <Button href="/faq" variant="secondary" size="lg" className="border-foreground text-foreground hover:bg-foreground/10">
+            <Button
+              href="/faq"
+              variant="secondary"
+              size="lg"
+              className="border-foreground text-foreground hover:bg-foreground/10"
+            >
               Frequently Asked Questions
             </Button>
           </div>

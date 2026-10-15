@@ -8,6 +8,9 @@ import { PostMeta } from "@/components/blog/PostMeta";
 import { ShareButton } from "@/components/blog/ShareButton";
 import { PortableText } from "@/components/content/PortableText";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { sanityFetch } from "@/lib/sanity/fetch";
+import { postBySlugQuery, postSlugsQuery, postsQuery } from "@/lib/sanity/queries";
+import { Post } from "@/lib/types";
 import { mockPosts } from "@/lib/mock";
 import { readingTime } from "@/lib/utils";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -17,6 +20,15 @@ interface PostPageProps {
 }
 
 export async function generateStaticParams() {
+  const sanitySlugs = await sanityFetch<string[]>({
+    query: postSlugsQuery,
+    tags: ["post"],
+  });
+
+  if (sanitySlugs && sanitySlugs.length > 0) {
+    return sanitySlugs.map((slug) => ({ slug }));
+  }
+
   return mockPosts.map((p) => {
     const slug = typeof p.slug === "object" ? p.slug.current : p.slug;
     return { slug };
@@ -27,10 +39,19 @@ export async function generateMetadata({
   params,
 }: PostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = mockPosts.find((p) => {
-    const currentSlug = typeof p.slug === "object" ? p.slug.current : p.slug;
-    return currentSlug === slug;
+
+  const sanityPost = await sanityFetch<Post>({
+    query: postBySlugQuery,
+    params: { slug },
+    tags: ["post"],
   });
+
+  const post =
+    sanityPost ||
+    mockPosts.find((p) => {
+      const currentSlug = typeof p.slug === "object" ? p.slug.current : p.slug;
+      return currentSlug === slug;
+    });
 
   if (!post) {
     return { title: "Story Not Found" };
@@ -49,18 +70,34 @@ export async function generateMetadata({
 
 export default async function BlogPostPage({ params }: PostPageProps) {
   const { slug } = await params;
-  const postIndex = mockPosts.findIndex((p) => {
+
+  const [sanityPost, allSanityPosts] = await Promise.all([
+    sanityFetch<Post>({
+      query: postBySlugQuery,
+      params: { slug },
+      tags: ["post"],
+    }),
+    sanityFetch<Post[]>({
+      query: postsQuery,
+      tags: ["post"],
+    }),
+  ]);
+
+  const allPosts = allSanityPosts && allSanityPosts.length > 0 ? allSanityPosts : mockPosts;
+
+  const postIndex = allPosts.findIndex((p) => {
     const currentSlug = typeof p.slug === "object" ? p.slug.current : p.slug;
     return currentSlug === slug;
   });
 
-  if (postIndex === -1) {
+  const post = sanityPost || (postIndex !== -1 ? allPosts[postIndex] : null);
+
+  if (!post) {
     notFound();
   }
 
-  const post = mockPosts[postIndex];
-  const prevPost = postIndex > 0 ? mockPosts[postIndex - 1] : null;
-  const nextPost = postIndex < mockPosts.length - 1 ? mockPosts[postIndex + 1] : null;
+  const prevPost = postIndex > 0 ? allPosts[postIndex - 1] : null;
+  const nextPost = postIndex < allPosts.length - 1 ? allPosts[postIndex + 1] : null;
 
   const prevSlug = prevPost
     ? typeof prevPost.slug === "object"
@@ -74,7 +111,6 @@ export default async function BlogPostPage({ params }: PostPageProps) {
       : nextPost.slug
     : null;
 
-  // Article JSON-LD
   const articleSchema = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -135,7 +171,7 @@ export default async function BlogPostPage({ params }: PostPageProps) {
 
         {/* Cover Image */}
         {post.coverImage?.url && (
-          <div className="relative w-full aspect-[16/10] rounded-2xl overflow-hidden border border-border shadow-xs mb-10">
+          <div className="relative w-full aspect-[16/10] rounded-2xl overflow-hidden border border-border shadow-xs mb-10 bg-background">
             <Image
               src={post.coverImage.url}
               alt={post.coverImage.alt || post.title}

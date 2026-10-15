@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { Container } from "@/components/layout/Container";
 import { PhotoGrid } from "@/components/gallery/PhotoGrid";
+import { sanityFetch } from "@/lib/sanity/fetch";
+import { albumBySlugQuery, albumSlugsQuery } from "@/lib/sanity/queries";
+import { Album } from "@/lib/types";
 import { mockAlbums } from "@/lib/mock";
 import { formatDate } from "@/lib/utils";
 import { ArrowLeft, Calendar } from "lucide-react";
@@ -13,6 +16,15 @@ interface AlbumPageProps {
 }
 
 export async function generateStaticParams() {
+  const sanitySlugs = await sanityFetch<string[]>({
+    query: albumSlugsQuery,
+    tags: ["album"],
+  });
+
+  if (sanitySlugs && sanitySlugs.length > 0) {
+    return sanitySlugs.map((slug) => ({ album: slug }));
+  }
+
   return mockAlbums.map((a) => {
     const slug = typeof a.slug === "object" ? a.slug.current : a.slug;
     return { album: slug };
@@ -23,10 +35,19 @@ export async function generateMetadata({
   params,
 }: AlbumPageProps): Promise<Metadata> {
   const { album: slug } = await params;
-  const album = mockAlbums.find((a) => {
-    const currentSlug = typeof a.slug === "object" ? a.slug.current : a.slug;
-    return currentSlug === slug;
+
+  const sanityAlbum = await sanityFetch<Album>({
+    query: albumBySlugQuery,
+    params: { slug },
+    tags: ["album"],
   });
+
+  const album =
+    sanityAlbum ||
+    mockAlbums.find((a) => {
+      const currentSlug = typeof a.slug === "object" ? a.slug.current : a.slug;
+      return currentSlug === slug;
+    });
 
   if (!album) {
     return { title: "Album Not Found" };
@@ -40,10 +61,19 @@ export async function generateMetadata({
 
 export default async function AlbumDetailPage({ params }: AlbumPageProps) {
   const { album: slug } = await params;
-  const album = mockAlbums.find((a) => {
-    const currentSlug = typeof a.slug === "object" ? a.slug.current : a.slug;
-    return currentSlug === slug;
+
+  const sanityAlbum = await sanityFetch<Album>({
+    query: albumBySlugQuery,
+    params: { slug },
+    tags: ["album"],
   });
+
+  const album =
+    sanityAlbum ||
+    mockAlbums.find((a) => {
+      const currentSlug = typeof a.slug === "object" ? a.slug.current : a.slug;
+      return currentSlug === slug;
+    });
 
   if (!album) {
     notFound();

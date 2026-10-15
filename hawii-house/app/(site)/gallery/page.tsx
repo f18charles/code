@@ -3,6 +3,9 @@ import { Metadata } from "next";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Container } from "@/components/layout/Container";
 import { AlbumCard } from "@/components/gallery/AlbumCard";
+import { sanityFetch } from "@/lib/sanity/fetch";
+import { albumsQuery } from "@/lib/sanity/queries";
+import { Album } from "@/lib/types";
 import { mockAlbums } from "@/lib/mock";
 
 export const metadata: Metadata = {
@@ -11,8 +14,13 @@ export const metadata: Metadata = {
     "Explore photo albums documenting community meals, creative workshops, and daily life at Hawii House.",
 };
 
-export default function GalleryPage() {
-  const albums = mockAlbums;
+export default async function GalleryPage() {
+  const sanityAlbums = await sanityFetch<Album[]>({
+    query: albumsQuery,
+    tags: ["album"],
+  });
+
+  const albums = sanityAlbums && sanityAlbums.length > 0 ? sanityAlbums : mockAlbums;
 
   return (
     <div>

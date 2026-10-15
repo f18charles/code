@@ -6,6 +6,9 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Container } from "@/components/layout/Container";
 import { PostCard } from "@/components/blog/PostCard";
 import { PostMeta } from "@/components/blog/PostMeta";
+import { sanityFetch } from "@/lib/sanity/fetch";
+import { postsQuery } from "@/lib/sanity/queries";
+import { Post } from "@/lib/types";
 import { mockPosts } from "@/lib/mock";
 import { readingTime } from "@/lib/utils";
 
@@ -15,14 +18,20 @@ export const metadata: Metadata = {
     "Stories of hope, recovery, community meals, and updates from the team and residents at Hawii House.",
 };
 
-export default function BlogPage() {
-  const posts = mockPosts;
+export default async function BlogPage() {
+  const sanityPosts = await sanityFetch<Post[]>({
+    query: postsQuery,
+    tags: ["post"],
+  });
+
+  const posts = sanityPosts && sanityPosts.length > 0 ? sanityPosts : mockPosts;
   const [featuredPost, ...remainingPosts] = posts;
 
-  const featuredSlug =
-    typeof featuredPost.slug === "object"
+  const featuredSlug = featuredPost
+    ? typeof featuredPost.slug === "object"
       ? featuredPost.slug.current
-      : featuredPost.slug;
+      : featuredPost.slug
+    : null;
 
   return (
     <div>
@@ -35,7 +44,7 @@ export default function BlogPage() {
       <section className="py-16 md:py-24 bg-background">
         <Container>
           {/* Featured Post Card */}
-          {featuredPost && (
+          {featuredPost && featuredSlug && (
             <div className="mb-14">
               <article className="group rounded-2xl border border-border bg-surface overflow-hidden transition-all duration-200 hover:border-primary/40 shadow-sm hover:shadow-md">
                 <Link
@@ -44,7 +53,10 @@ export default function BlogPage() {
                 >
                   <div className="lg:col-span-7 relative w-full aspect-[16/10] bg-background overflow-hidden">
                     <Image
-                      src={featuredPost.coverImage?.url || ""}
+                      src={
+                        featuredPost.coverImage?.url ||
+                        "https://images.unsplash.com/photo-1593113598332-cd288d649433?auto=format&fit=crop&w=1200&q=80"
+                      }
                       alt={featuredPost.coverImage?.alt || featuredPost.title}
                       fill
                       priority
