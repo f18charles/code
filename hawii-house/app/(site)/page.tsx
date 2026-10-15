@@ -1,14 +1,126 @@
+import React from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { Hero } from "@/components/home/Hero";
+import { Highlights } from "@/components/home/Highlights";
+import { Section } from "@/components/ui/Section";
 import { Container } from "@/components/layout/Container";
+import { Button } from "@/components/ui/Button";
+import { PostCard } from "@/components/blog/PostCard";
+import { mockHomePage, mockPosts, mockAlbums } from "@/lib/mock";
 
 export default function HomePage() {
+  const homeData = mockHomePage;
+  const latestPosts = mockPosts.slice(0, 3);
+  const featuredAlbum = homeData.featuredAlbum || mockAlbums[0];
+
   return (
-    <Container className="py-16 text-center">
-      <h1 className="text-3xl md:text-5xl font-serif font-bold text-foreground mb-4">
-        Hawii House
-      </h1>
-      <p className="text-lg text-muted max-w-prose mx-auto">
-        Warmth, dignity, and supportive community care. Foundation phase loaded.
-      </p>
-    </Container>
+    <div className="flex flex-col">
+      {/* 1. Hero */}
+      <Hero
+        headline={homeData.heroHeadline}
+        subheadline={homeData.heroSubheadline}
+        primaryCta={homeData.primaryCta}
+        secondaryCta={homeData.secondaryCta}
+        image={homeData.heroImage}
+      />
+
+      {/* 2. Mission Summary */}
+      <Section tone="default" narrow className="text-center">
+        <p className="text-xs md:text-sm font-bold uppercase tracking-[0.08em] text-brown mb-3">
+          Our Purpose
+        </p>
+        <p className="text-xl md:text-2xl font-serif text-foreground leading-relaxed">
+          &ldquo;{homeData.missionSummary}&rdquo;
+        </p>
+        <div className="mt-6">
+          <Link
+            href="/about"
+            className="text-primary font-bold text-base hover:underline underline-offset-4"
+          >
+            Read our founding story &rarr;
+          </Link>
+        </div>
+      </Section>
+
+      {/* 3. Highlights */}
+      <Section
+        tone="surface"
+        eyebrow="What We Do"
+        title="Comprehensive, Restorative Support"
+        intro="From emergency shelter and hot meals to long-term career stabilization, our doors are open with programs designed for lasting recovery."
+      >
+        <Highlights items={homeData.highlights} />
+      </Section>
+
+      {/* 4. Featured Album Strip */}
+      <Section
+        tone="default"
+        eyebrow="Community in Action"
+        title={featuredAlbum.title}
+        intro={featuredAlbum.description}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {featuredAlbum.images.slice(0, 3).map((photo, i) => (
+            <div
+              key={photo._key || i}
+              className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-border shadow-xs"
+            >
+              <Image
+                src={photo.url || ""}
+                alt={photo.alt}
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                className="object-cover"
+              />
+            </div>
+          ))}
+        </div>
+        <div className="mt-10 text-center">
+          <Button href="/gallery" variant="secondary" size="md">
+            View All Photo Albums &rarr;
+          </Button>
+        </div>
+      </Section>
+
+      {/* 5. Latest Posts */}
+      <Section
+        tone="surface"
+        eyebrow="Stories & Updates"
+        title="Voices from Hawii House"
+        intro="Insights, community highlights, and firsthand perspectives from our team, volunteers, and neighbors."
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {latestPosts.map((post) => (
+            <PostCard key={post._id} post={post} />
+          ))}
+        </div>
+        <div className="mt-10 text-center">
+          <Button href="/blog" variant="ghost" size="md">
+            Read all stories &rarr;
+          </Button>
+        </div>
+      </Section>
+
+      {/* 6. Call to Action Band */}
+      <section className="bg-accent py-16 md:py-20 transition-colors">
+        <Container narrow className="text-center">
+          <h2 className="text-2xl md:text-4xl font-serif font-bold text-foreground mb-4">
+            Need support or want to make a difference?
+          </h2>
+          <p className="text-base md:text-lg text-foreground/90 max-w-xl mx-auto mb-8 leading-relaxed">
+            Whether you are searching for shelter, looking for community assistance, or eager to volunteer your time, we are here for you.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Button href="/about#contact" variant="dark" size="lg">
+              Get in Touch Today
+            </Button>
+            <Button href="/faq" variant="secondary" size="lg" className="border-foreground text-foreground hover:bg-foreground/10">
+              Frequently Asked Questions
+            </Button>
+          </div>
+        </Container>
+      </section>
+    </div>
   );
 }
